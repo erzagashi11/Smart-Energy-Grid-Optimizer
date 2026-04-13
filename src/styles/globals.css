@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-dark text-white antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-dark-card/80 backdrop-blur-md border border-dark-border/50 rounded-lg;
+  }
+
+  .neon-glow-blue {
+    box-shadow: 0 0 15px rgba(77, 208, 225, 0.3), 0 0 30px rgba(77, 208, 225, 0.15);
+  }
+
+  .neon-glow-green {
+    box-shadow: 0 0 15px rgba(102, 187, 106, 0.3), 0 0 30px rgba(102, 187, 106, 0.15);
+  }
+
+  .neon-glow-orange {
+    box-shadow: 0 0 15px rgba(255, 138, 101, 0.3), 0 0 30px rgba(255, 138, 101, 0.15);
+  }
+
+  .neon-glow-red {
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.3), 0 0 30px rgba(244, 67, 54, 0.15);
+  }
+}
