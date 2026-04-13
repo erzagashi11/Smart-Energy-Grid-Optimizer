@@ -196,7 +196,7 @@ export function computeCityPowersWithPlantPowers(
   plantPowers: number[]
 ): ComputedCityPower[] {
   return cities.map((city) => {
-    let total = 0;
+    let fromPlants = 0;
     const covered_by: Array<{ plant_name: string; contribution: number }> = [];
     for (let i = 0; i < plants.length; i++) {
       const plant = plants[i];
@@ -205,14 +205,16 @@ export function computeCityPowersWithPlantPowers(
       if (distance_km <= plant.radius) {
         const raw = power * (1 - distance_km / plant.radius);
         const contribution = Math.floor(raw);
-        total += contribution;
+        fromPlants += contribution;
         covered_by.push({ plant_name: plant.plant_name, contribution });
       }
     }
+    const baseDemand = Math.floor(city.demand);
+    const current_power = baseDemand + fromPlants;
     return {
       ...city,
-      current_power: Math.floor(total),
-      gap: Math.floor(total - city.demand),
+      current_power,
+      gap: current_power - city.demand,
       covered_by,
     };
   });
