@@ -189,6 +189,17 @@ export default function OptimizationMode({
 
   return (
     <div className="space-y-6">
+      <div className="glass-card p-6">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-neon-blue mb-2">
+            Optimization Mode – Maximize Minimum Power
+          </h2>
+          <p className="text-text-secondary">
+            Use binary search to find the maximum achievable minimum power with the given constraints.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column - Inputs and Controls */}
         <div className="lg:col-span-3 space-y-6">
