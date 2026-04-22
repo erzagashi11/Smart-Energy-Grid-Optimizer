@@ -60,12 +60,8 @@ export default function OptimizationMode({
   onExcelPlantsFile,
   onClearExcel,
 }: OptimizationModeProps) {
-  const [viewMode, setViewMode] = useState<'chart' | 'map' | 'flow'>('chart');
+  const [viewMode, setViewMode] = useState<'chart' | 'map'>('chart');
   const [showPlacementsOverlay, setShowPlacementsOverlay] = useState(false);
-
-  useEffect(() => {
-    if (!excelMode && viewMode === 'flow') setViewMode('chart');
-  }, [excelMode, viewMode]);
 
   // Get current trial and step
   const currentTrialIndex = playback?.currentTrialIndex ?? 0;
@@ -193,17 +189,6 @@ export default function OptimizationMode({
 
   return (
     <div className="space-y-6">
-      <div className="glass-card p-6">
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-neon-blue mb-2">
-            Optimization Mode – Maximize Minimum Power
-          </h2>
-          <p className="text-text-secondary">
-            Use binary search to find the maximum achievable minimum power with the given constraints.
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column - Inputs and Controls */}
         <div className="lg:col-span-3 space-y-6">
@@ -232,7 +217,7 @@ export default function OptimizationMode({
                 <ViewToggle
                   currentView={viewMode}
                   onViewChange={setViewMode}
-                  showFlowTab={excelMode}
+                  showFlowTab={false}
                 />
                 {/* Show Placements button - only in final solution mode */}
                 {isAtFinalStep && allPlacements.length > 0 && (

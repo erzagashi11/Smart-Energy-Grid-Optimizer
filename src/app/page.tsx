@@ -1,23 +1,19 @@
 'use client';
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AppState, SolveInput, PlaybackState, AppMode, PlanningResult } from '@/lib/types';
+import { AppState, SolveInput, PlaybackState } from '@/lib/types';
 import { solveWithTrace } from '@/lib/solver/traceSolver';
 import { maxPower, computeFinalDistribution } from '@/lib/solver/maxPower';
 import {
   maxPowerExcel,
   solveWithTraceExcel,
   computeFinalDistributionExcel,
-  computePlanningResultExcel,
 } from '@/lib/solver/excelSolver';
 import { solveRealMode, solveWithTraceReal } from '@/lib/solver/excelRealSolver';
 import { buildBasePowerDiff, diffToPower } from '@/lib/solver/powerUtils';
-import { computePlanningResult } from '@/lib/solver/planningSolver';
 import { exportToPDF, exportToJSON } from '@/lib/exportUtils';
 import HeaderBar from '@/components/HeaderBar';
 import OptimizationMode from '@/components/Optimization/OptimizationMode';
-import PlanningMode from '@/components/Planning/PlanningMode';
 import {
   parseCitiesExcel,
   parsePlantsExcel,
@@ -46,15 +42,7 @@ const initialOptimizationState: AppState = {
 export default function Home() {
   // Optimization simulator state
   const [optimizationState, setOptimizationState] = useState<AppState>(initialOptimizationState);
-  
-  // Extended mode state for Optimizer/Planning toggle
-  const [viewMode, setViewMode] = useState<'optimizer' | 'planning'>('optimizer');
-  
-  // Planning mode state
-  const [targetMin, setTargetMin] = useState<number>(5);
-  const [planningResult, setPlanningResult] = useState<PlanningResult | null>(null);
-  
-  const [currentMode, setCurrentMode] = useState<AppMode>('optimization');
+
   const [heatmapMode, setHeatmapMode] = useState(false);
   const [optimizationExplainMode, setOptimizationExplainMode] = useState(false);
 
@@ -274,28 +262,7 @@ export default function Home() {
     }));
   }, []);
 
-  // Planning mode handlers
-  const handlePlanningGenerate = useCallback(() => {
-    const { stations, r } = optimizationState.input;
-
-    if (excelMode) {
-      const result = computePlanningResultExcel(stations, targetMin, null);
-      setPlanningResult(result);
-    } else {
-      const result = computePlanningResult(stations, r, targetMin, null);
-      setPlanningResult(result);
-    }
-  }, [optimizationState.input, targetMin, excelMode]);
-
-  const handlePlanningInputChange = useCallback((input: Partial<SolveInput>) => {
-    setOptimizationState((prev) => ({
-      ...prev,
-      input: { ...prev.input, ...input },
-    }));
-    setPlanningResult(null);
-  }, []);
-
-  // Export handlers for each mode
+  // Export handlers
   const handleOptimizationExportPDF = useCallback(() => {
     exportToPDF('optimization', optimizationState, null, null);
   }, [optimizationState]);
@@ -309,123 +276,48 @@ export default function Home() {
     exportToJSON(data, 'optimization-report.json');
   }, [optimizationState]);
 
-  const handlePlanningExportPDF = useCallback(() => {
-    exportToPDF('optimization', null, planningResult, null);
-  }, [planningResult]);
-
-  const handlePlanningExportJSON = useCallback(() => {
-    const data = {
-      mode: 'planning',
-      timestamp: new Date().toISOString(),
-      planning: planningResult,
-      targetMin,
-    };
-    exportToJSON(data, 'planning-report.json');
-  }, [planningResult, targetMin]);
-
   return (
     <div className="min-h-screen bg-gradient-dark">
       <HeaderBar />
       
-      {/* Mode Toggle Header */}
       <div className="container mx-auto px-4 pt-4">
         <div className="glass-card p-4 mb-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white mb-1">
-                Smart Energy Grid Optimizer
-              </h1>
-              <p className="text-text-secondary text-sm">
-                {viewMode === 'optimizer' 
-                  ? 'Find the maximum achievable minimum power given your resources'
-                  : 'Determine the minimum resources needed to reach your target'}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-text-secondary">Mode:</span>
-              <div className="flex bg-dark-card rounded-lg p-1 border border-dark-border">
-                <button
-                  onClick={() => setViewMode('optimizer')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                    viewMode === 'optimizer'
-                      ? 'bg-neon-blue text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Optimizer
-                </button>
-                <button
-                  onClick={() => setViewMode('planning')}
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                    viewMode === 'planning'
-                      ? 'bg-neon-purple text-white shadow-lg'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Planning
-                </button>
-              </div>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">
+              Smart Energy Grid Optimizer
+            </h1>
+            <p className="text-text-secondary text-sm">
+              Find the maximum achievable minimum power given your resources.
+            </p>
           </div>
         </div>
       </div>
       
       <div className="container mx-auto px-4 pb-6">
-        <AnimatePresence mode="wait">
-          {viewMode === 'optimizer' ? (
-            <motion.div
-              key="optimizer"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <OptimizationMode
-                input={optimizationState.input}
-                output={optimizationState.output}
-                playback={optimizationState.playback}
-                onInputChange={handleOptimizationInputChange}
-                onPlaybackChange={handleOptimizationPlaybackChange}
-                onSolve={handleOptimizationSolve}
-                onSolveWithTrace={handleOptimizationSolveWithTrace}
-                heatmapMode={heatmapMode}
-                onHeatmapModeChange={setHeatmapMode}
-                explainMode={optimizationExplainMode}
-                onExplainModeChange={setOptimizationExplainMode}
-                onExportPDF={handleOptimizationExportPDF}
-                onExportJSON={handleOptimizationExportJSON}
-                excelMode={excelMode}
-                excelError={excelError}
-                excelInputKey={excelInputKey}
-                excelContext={excelContext}
-                excelStrategy={excelStrategy}
-                onExcelStrategyChange={handleExcelStrategyChange}
-                onExcelCitiesFile={onExcelCitiesFile}
-                onExcelPlantsFile={onExcelPlantsFile}
-                onClearExcel={clearExcel}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="planning"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <PlanningMode
-                input={optimizationState.input}
-                targetMin={targetMin}
-                onTargetMinChange={setTargetMin}
-                planningResult={planningResult}
-                onGeneratePlan={handlePlanningGenerate}
-                onInputChange={handlePlanningInputChange}
-                excelMode={excelMode}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <OptimizationMode
+          input={optimizationState.input}
+          output={optimizationState.output}
+          playback={optimizationState.playback}
+          onInputChange={handleOptimizationInputChange}
+          onPlaybackChange={handleOptimizationPlaybackChange}
+          onSolve={handleOptimizationSolve}
+          onSolveWithTrace={handleOptimizationSolveWithTrace}
+          heatmapMode={heatmapMode}
+          onHeatmapModeChange={setHeatmapMode}
+          explainMode={optimizationExplainMode}
+          onExplainModeChange={setOptimizationExplainMode}
+          onExportPDF={handleOptimizationExportPDF}
+          onExportJSON={handleOptimizationExportJSON}
+          excelMode={excelMode}
+          excelError={excelError}
+          excelInputKey={excelInputKey}
+          excelContext={excelContext}
+          excelStrategy={excelStrategy}
+          onExcelStrategyChange={handleExcelStrategyChange}
+          onExcelCitiesFile={onExcelCitiesFile}
+          onExcelPlantsFile={onExcelPlantsFile}
+          onClearExcel={clearExcel}
+        />
       </div>
     </div>
   );

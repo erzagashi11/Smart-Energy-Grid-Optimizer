@@ -39,6 +39,8 @@ export default function ParamsPanel({
   const [kError, setKError] = useState<string>('');
   const [stationsError, setStationsError] = useState<string>('');
   const [kDisplayValue, setKDisplayValue] = useState<string>(input.k.toString());
+  const [isLoadingSamples, setIsLoadingSamples] = useState(false);
+  const [sampleLoadError, setSampleLoadError] = useState<string | null>(null);
 
   // Real-time validation
   const validation = useMemo(() => {
@@ -99,17 +101,84 @@ export default function ParamsPanel({
 
   const isFormValid = validation.isValid && !rError && !kError && !stationsError;
 
+  const handleLoadSampleExcel = async () => {
+    if (!onExcelCitiesFile || !onExcelPlantsFile) return;
+    setIsLoadingSamples(true);
+    setSampleLoadError(null);
+    try {
+      const [citiesResponse, plantsResponse] = await Promise.all([
+        fetch('/excel-samples/cities.xlsx'),
+        fetch('/excel-samples/plants.xlsx'),
+      ]);
+      if (!citiesResponse.ok || !plantsResponse.ok) {
+        throw new Error('Missing sample files');
+      }
+      const [citiesBlob, plantsBlob] = await Promise.all([
+        citiesResponse.blob(),
+        plantsResponse.blob(),
+      ]);
+      const citiesSample = new File([citiesBlob], 'cities.xlsx', {
+        type: citiesBlob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const plantsSample = new File([plantsBlob], 'plants.xlsx', {
+        type: plantsBlob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      onExcelCitiesFile(citiesSample);
+      onExcelPlantsFile(plantsSample);
+    } catch {
+      setSampleLoadError('Sample files could not be loaded. Please upload manually.');
+    } finally {
+      setIsLoadingSamples(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sticky top-4">
       {/* Optional Excel uploads — same column width as rest of panel */}
       {onExcelCitiesFile && onExcelPlantsFile && onClearExcel && (
         <div className="glass-card p-4 border border-emerald-500/25">
-          <h3 className="text-sm font-semibold mb-2 text-emerald-400">Excel data (optional)</h3>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <h3 className="text-sm font-semibold text-emerald-400">Excel data (optional)</h3>
+            <div className="relative group">
+              <button
+                type="button"
+                className="w-5 h-5 rounded-full border border-emerald-400/60 text-emerald-300 text-[11px] leading-none flex items-center justify-center"
+                aria-label="Show Excel format help"
+              >
+                i
+              </button>
+              <div className="pointer-events-none absolute right-0 top-7 z-20 hidden w-72 rounded-md border border-dark-border bg-dark-card p-3 text-[11px] text-text-secondary shadow-xl group-hover:block">
+                <p className="text-emerald-300 font-semibold mb-1">Required structure</p>
+                <p>
+                  <span className="text-white/90 font-mono">cities.xlsx</span>: city_name, lat, lng, demand
+                  (optional: city_id, priority)
+                </p>
+                <p className="mt-1">
+                  <span className="text-white/90 font-mono">plants.xlsx</span>: plant_name, lat, lng, power, radius
+                  (optional: plant_id, type)
+                </p>
+                <p className="mt-1 text-[10px] text-text-muted">
+                  Also accepted: base_demand_num/base_demand and net_power_mw/radius_km.
+                </p>
+              </div>
+            </div>
+          </div>
           <p className="text-xs text-text-secondary mb-3">
             Upload <span className="font-mono text-white/90">cities.xlsx</span> and{' '}
             <span className="font-mono text-white/90">plants.xlsx</span> to drive the stations array from computed city
             power. r and k still come from the controls below.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              void handleLoadSampleExcel();
+            }}
+            disabled={isLoadingSamples}
+            className="mb-3 w-full py-1.5 text-xs rounded border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoadingSamples ? 'Loading sample files...' : 'Use sample cities.xlsx + plants.xlsx'}
+          </button>
+          {sampleLoadError && <p className="text-red-400 text-xs mb-2">{sampleLoadError}</p>}
           <div className="space-y-2">
             <div>
               <label className="block text-[11px] text-text-secondary mb-1">cities.xlsx</label>
