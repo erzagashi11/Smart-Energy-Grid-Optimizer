@@ -227,7 +227,9 @@ export default function OptimizationMode({
               <div className="flex items-center gap-3">
                 <ViewToggle
                   currentView={viewMode}
-                  onViewChange={setViewMode}
+                  onViewChange={(view) => {
+                    if (view !== 'flow') setViewMode(view);
+                  }}
                   showFlowTab={false}
                 />
                 {/* Show Placements button - only in final solution mode */}
